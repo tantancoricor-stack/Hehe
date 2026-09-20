@@ -1,0 +1,115 @@
+-- Create UI Elements
+local ScreenGui = Instance.new("ScreenGui")
+local Panel = Instance.new("Frame")
+local SpeedMeter = Instance.new("TextLabel")
+local IncreaseButton = Instance.new("TextButton")
+local DecreaseButton = Instance.new("TextButton")
+local ToggleButton = Instance.new("TextButton")
+
+-- Set properties for ScreenGui
+ScreenGui.Parent = game.CoreGui
+
+-- Set properties for Panel
+Panel.Size = UDim2.new(0, 300, 0, 200)
+Panel.Position = UDim2.new(0.5, -150, 0.5, -100)
+Panel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Panel.Visible = false
+Panel.Parent = ScreenGui
+
+-- Set properties for SpeedMeter
+SpeedMeter.Size = UDim2.new(1, 0, 0, 50)
+SpeedMeter.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+SpeedMeter.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedMeter.TextScaled = true
+SpeedMeter.Parent = Panel
+
+-- Set properties for IncreaseButton
+IncreaseButton.Size = UDim2.new(0.5, 0, 0, 50)
+IncreaseButton.Position = UDim2.new(0, 0, 0.5, 0)
+IncreaseButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+IncreaseButton.Text = "Increase Speed & Jump"
+IncreaseButton.Parent = Panel
+
+-- Set properties for DecreaseButton
+DecreaseButton.Size = UDim2.new(0.5, 0, 0, 50)
+DecreaseButton.Position = UDim2.new(0.5, 0, 0.5, 0)
+DecreaseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+DecreaseButton.Text = "Decrease Speed & Jump"
+DecreaseButton.Parent = Panel
+
+-- Set properties for ToggleButton
+ToggleButton.Size = UDim2.new(0, 100, 0, 50)
+ToggleButton.Position = UDim2.new(0, 10, 0, 10)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+ToggleButton.Text = "Toggle Panel"
+ToggleButton.Parent = ScreenGui
+
+-- Variables for speed and jump power
+local player = game.Players.LocalPlayer
+local humanoid = player.Character:WaitForChild("Humanoid")
+local speedIncrease = 10
+local speedDecrease = -10
+local maxSpeed = 100
+local minSpeed = 16
+
+-- Function to update the speed meter
+local function updateStats()
+    SpeedMeter.Text = "Speed: " .. humanoid.WalkSpeed .. " Jump: " .. humanoid.JumpPower
+end
+
+-- Function to increase speed and jump power
+local function increaseSpeed()
+    if humanoid.WalkSpeed < maxSpeed then
+        humanoid.WalkSpeed = math.min(humanoid.WalkSpeed + speedIncrease, maxSpeed)
+        humanoid.JumpPower = humanoid.JumpPower + speedIncrease
+        updateStats()
+    end
+end
+
+-- Function to decrease speed and jump power
+local function decreaseSpeed()
+    if humanoid.WalkSpeed > minSpeed then
+        humanoid.WalkSpeed = math.max(humanoid.WalkSpeed + speedDecrease, minSpeed)
+        humanoid.JumpPower = math.max(humanoid.JumpPower + speedDecrease, minSpeed)
+        updateStats()
+    end
+end
+
+-- Toggle panel visibility
+ToggleButton.MouseButton1Click:Connect(function()
+    Panel.Visible = not Panel.Visible
+end)
+
+-- Button functionalities
+IncreaseButton.MouseButton1Click:Connect(increaseSpeed)
+DecreaseButton.MouseButton1Click:Connect(decreaseSpeed)
+
+-- Draggable Panel Functionality
+local dragging = false
+local dragStart, startPos
+
+Panel.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Panel.Position
+    end
+end)
+
+Panel.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        if dragging then
+            local delta = input.Position - dragStart
+            Panel.Position = startPos + UDim2.new(0, delta.X, 0, delta.Y)
+        end
+    end
+end)
+
+Panel.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- Initial stats display
+updateStats()
