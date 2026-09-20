@@ -1,0 +1,351 @@
+-- =============================================
+-- TEC HUB | Steal and Egg
+-- Features: Pet List + Prediction + Teleport + Fly Back
+-- =============================================
+
+local TEC_HUB = {}
+
+-- Services
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local HRP = Character:WaitForChild("HumanoidRootPart")
+
+-- Settings
+local FLY_SPEED = 800
+local isFlying = false
+local autoLoop = false
+
+-- UI Creator
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TECHUB_StealandEgg"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- 🟡 ROUND BUTTON (TEC)
+local MainButton = Instance.new("TextButton")
+MainButton.Name = "TEC_Button"
+MainButton.Parent = ScreenGui
+MainButton.BackgroundColor3 = Color3.fromRGB(20, 120, 255)
+MainButton.BorderRadiusPixel = 50
+MainButton.Position = UDim2.new(0.015, 0, 0.5, 0)
+MainButton.Size = UDim2.new(0, 65, 0, 65)
+MainButton.Font = Enum.Font.GothamBold
+MainButton.Text = "TEC"
+MainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainButton.TextScaled = true
+MainButton.BorderSizePixel = 2
+MainButton.BorderColor3 = Color3.fromRGB(255, 215, 0)
+
+-- 📦 MAIN PANEL
+local Panel = Instance.new("Frame")
+Panel.Name = "TEC_HUB_Panel"
+Panel.Parent = ScreenGui
+Panel.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+Panel.BorderRadiusPixel = 14
+Panel.Position = UDim2.new(0.095, 0, 0.15, 0)
+Panel.Size = UDim2.new(0, 320, 0, 480)
+Panel.Visible = false
+Panel.BorderSizePixel = 1
+Panel.BorderColor3 = Color3.fromRGB(60, 60, 70)
+
+-- 🏷️ PANEL HEADER
+local Header = Instance.new("Frame")
+Header.Parent = Panel
+Header.BackgroundColor3 = Color3.fromRGB(30, 130, 255)
+Header.BorderRadiusPixel = 12
+Header.Position = UDim2.new(0, 0, 0, 0)
+Header.Size = UDim2.new(1, 0, 0, 50)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = Header
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0.32, 0, 0, 0)
+Title.Size = UDim2.new(0.36, 0, 1, 0)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "🔷 TEC HUB"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextScaled = true
+
+-- ❌ CLOSE BUTTON
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Parent = Header
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Position = UDim2.new(0.88, 0, 0.1, 0)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextScaled = true
+CloseBtn.MouseButton1Click:Connect(function() Panel.Visible = false end)
+
+-- 📜 SCROLLING PET LIST
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Parent = Panel
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.Position = UDim2.new(0.05, 0, 0.13, 0)
+ScrollingFrame.Size = UDim2.new(0.9, 0, 0.72, 0)
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollingFrame.ScrollBarThickness = 6
+ScrollingFrame.ScrollBarColor3 = Color3.fromRGB(80, 80, 90)
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = ScrollingFrame
+UIListLayout.Padding = UDim.new(0, 8)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- ⚙️ BOTTOM BUTTONS
+local StopBtn = Instance.new("TextButton")
+StopBtn.Parent = Panel
+StopBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+StopBtn.BorderRadiusPixel = 8
+StopBtn.Position = UDim2.new(0.05, 0, 0.88, 0)
+StopBtn.Size = UDim2.new(0.42, 0, 0, 40)
+StopBtn.Font = Enum.Font.GothamBold
+StopBtn.Text = "⏹ STOP"
+StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StopBtn.TextScaled = true
+
+local GetBtn = Instance.new("TextButton")
+GetBtn.Parent = Panel
+GetBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+GetBtn.BorderRadiusPixel = 8
+GetBtn.Position = UDim2.new(0.53, 0, 0.88, 0)
+GetBtn.Size = UDim2.new(0.42, 0, 0, 40)
+GetBtn.Font = Enum.Font.GothamBold
+GetBtn.Text = "✅ GET EGG"
+GetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+GetBtn.TextScaled = true
+
+-- 🐾 PET DATA — ilagay dyan yung pets sa Steal and Egg
+local PetsData = {
+    {Name = "Common Egg", MoneyPerSec = "$1", Image = "rbxassetid://13357039145"},
+    {Name = "Uncommon Egg", MoneyPerSec = "$5", Image = "rbxassetid://13357039145"},
+    {Name = "Rare Egg", MoneyPerSec = "$25", Image = "rbxassetid://13357039145"},
+    {Name = "Epic Egg", MoneyPerSec = "$100", Image = "rbxassetid://13357039145"},
+    {Name = "Legendary Egg", MoneyPerSec = "$500", Image = "rbxassetid://13357039145"},
+    {Name = "Mythic Egg", MoneyPerSec = "$2,500", Image = "rbxassetid://13357039145"},
+    {Name = "Divine Egg", MoneyPerSec = "$15,000", Image = "rbxassetid://13357039145"},
+    {Name = "Secret Egg", MoneyPerSec = "$100,000", Image = "rbxassetid://13357039145"},
+    -- ✅ Dagdagan mo lang dito kung may bagong pets
+}
+
+local selectedPet = nil
+local PetButtons = {}
+
+-- 🖼️ Create Pet Buttons
+for i, pet in ipairs(PetsData) do
+    local PetBtn = Instance.new("TextButton")
+    PetBtn.Parent = ScrollingFrame
+    PetBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    PetBtn.BorderRadiusPixel = 8
+    PetBtn.Size = UDim2.new(0.95, 0, 0, 60)
+    PetBtn.AutoLocalize = false
+    PetBtn.Font = Enum.Font.Gotham
+    PetBtn.Text = ""
+    PetBtn.BorderSizePixel = 1
+    PetBtn.BorderColor3 = Color3.fromRGB(70, 70, 80)
+
+    -- 🖼️ Pet Image
+    local PetImg = Instance.new("ImageLabel")
+    PetImg.Parent = PetBtn
+    PetImg.BackgroundTransparency = 1
+    PetImg.Position = UDim2.new(0.02, 0, 0.1, 0)
+    PetImg.Size = UDim2.new(0, 45, 0, 45)
+    PetImg.Image = pet.Image
+    PetImg.BorderRadiusPixel = 6
+
+    -- 🏷️ Pet Name
+    local PetName = Instance.new("TextLabel")
+    PetName.Parent = PetBtn
+    PetName.BackgroundTransparency = 1
+    PetName.Position = UDim2.new(0.18, 0, 0.1, 0)
+    PetName.Size = UDim2.new(0.55, 0, 0, 25)
+    PetName.Font = Enum.Font.GothamBold
+    PetName.Text = pet.Name
+    PetName.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PetName.TextScaled = true
+
+    -- 💰 Money per Second
+    local PetStats = Instance.new("TextLabel")
+    PetStats.Parent = PetBtn
+    PetStats.BackgroundTransparency = 1
+    PetStats.Position = UDim2.new(0.18, 0, 0.52, 0)
+    PetStats.Size = UDim2.new(0.55, 0, 0, 20)
+    PetStats.Font = Enum.Font.Gotham
+    PetStats.Text = pet.MoneyPerSec .. "/sec"
+    PetStats.TextColor3 = Color3.fromRGB(180, 220, 255)
+    PetStats.TextScaled = true
+
+    -- ✅ Selection Indicator
+    local SelectMark = Instance.new("TextLabel")
+    SelectMark.Parent = PetBtn
+    SelectMark.BackgroundTransparency = 1
+    SelectMark.Position = UDim2.new(0.88, 0, 0.3, 0)
+    SelectMark.Size = UDim2.new(0, 20, 0, 20)
+    SelectMark.Font = Enum.Font.GothamBold
+    SelectMark.Text = ""
+    SelectMark.TextColor3 = Color3.fromRGB(80, 220, 80)
+    SelectMark.TextScaled = true
+
+    -- Click Event
+    PetBtn.MouseButton1Click:Connect(function()
+        -- Reset all
+        for _, b in ipairs(PetButtons) do
+            b.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+            b.SelectMark.Text = ""
+        end
+        -- Select current
+        PetBtn.BackgroundColor3 = Color3.fromRGB(35, 100, 220)
+        SelectMark.Text = "✓"
+        selectedPet = pet
+    end)
+
+    table.insert(PetButtons, PetBtn)
+    PetBtn.SelectMark = SelectMark
+end
+
+-- Update Scroll Size
+UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 15)
+end)
+
+-- 🔄 TOGGLE PANEL
+MainButton.MouseButton1Click:Connect(function()
+    Panel.Visible = not Panel.Visible
+end)
+CloseBtn.MouseButton1Click:Connect(function()
+    Panel.Visible = false
+end)
+
+-- ✈️ FLY FUNCTION
+local function FlyTo(targetPos)
+    if isFlying then return end
+    isFlying = true
+    
+    local B = Instance.new("BodyVelocity")
+    B.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    B.Velocity = Vector3.new(0, 0, 0)
+    B.Parent = HRP
+
+    local distance = (HRP.Position - targetPos).Magnitude
+    local time = distance / FLY_SPEED
+    
+    local direction = (targetPos - HRP.Position).Unit * FLY_SPEED
+    B.Velocity = direction
+    
+    game:GetService("RunService").Heartbeat:Wait()
+    repeat
+        task.wait(0.01)
+    until (HRP.Position - targetPos).Magnitude < 10
+    
+    B:Destroy()
+    isFlying = false
+end
+
+-- 🥚 FIND NEAREST EGG + PREDICTION
+local function FindNearestEgg()
+    local nearest = nil
+    local dist = math.huge
+    
+    -- ✅ I-adjust mo dito ang path kung saan nandun ang mga eggs sa laro
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and v.Name:match("Egg") or v.Name:match("egg") then
+            -- Simple prediction logic base on name/color
+            local eggData = {
+                Part = v,
+                Position = v.Position,
+                Prediction = "???"
+            }
+            
+            -- Guess kung anong nasa loob base sa hitsura/pangalan
+            if v.Name:find("Common") then eggData.Prediction = "Common"
+            elseif v.Name:find("Uncommon") then eggData.Prediction = "Uncommon"
+            elseif v.Name:find("Rare") then eggData.Prediction = "Rare"
+            elseif v.Name:find("Epic") then eggData.Prediction = "Epic"
+            elseif v.Name:find("Legendary") then eggData.Prediction = "Legendary"
+            elseif v.Name:find("Mythic") then eggData.Prediction = "Mythic"
+            elseif v.Name:find("Secret") then eggData.Prediction = "SECRET ⭐"
+            end
+            
+            local d = (HRP.Position - v.Position).Magnitude
+            if d < dist then
+                dist = d
+                nearest = eggData
+            end
+        end
+    end
+    return nearest
+end
+
+-- ✅ GET EGG LOGIC
+GetBtn.MouseButton1Click:Connect(function()
+    if not selectedPet then
+        warn("[TEC HUB] Pumili muna ng pet sa list!")
+        return
+    end
+    
+    autoLoop = true
+    GetBtn.Text = "🔄 WORKING..."
+    GetBtn.BackgroundColor3 = Color3.fromRGB(220, 170, 0)
+    
+    task.spawn(function()
+        while autoLoop do
+            -- Step 1: Hanapin ang pinakamalapit na egg
+            local egg = FindNearestEgg()
+            if not egg then
+                task.wait(1)
+                continue
+            end
+            
+            print("[TEC HUB] Egg found! Predicted: " .. egg.Prediction)
+            
+            -- Step 2: Teleport/Fly papunta sa egg
+            FlyTo(egg.Position)
+            task.wait(0.3)
+            
+            -- Step 3: Kunin ang egg (touch/interact)
+            HRP.CFrame = CFrame.new(egg.Position) * CFrame.new(0, -2, 0)
+            task.wait(0.2)
+            if egg.Part then
+                firetouchinterest(HRP, egg.Part, 0)
+                firetouchinterest(HRP, egg.Part, 1)
+            end
+            task.wait(0.3)
+            
+            -- Step 4: Fly pabalik sa base ✅ I-update mo ang base position dito
+            local BASE_POSITION = Vector3.new(0, 10, 0) -- ⚠️ PALITAN MO ITO NG TUNAY NA BASE POSITION
+            FlyTo(BASE_POSITION)
+            task.wait(0.5)
+            
+            print("[TEC HUB] Done! Back to base.")
+            task.wait(0.5)
+        end
+    end)
+end)
+
+-- ⏹ STOP LOGIC
+StopBtn.MouseButton1Click:Connect(function()
+    autoLoop = false
+    isFlying = false
+    GetBtn.Text = "✅ GET EGG"
+    GetBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+end)
+
+-- Drag Panel
+local dragToggle, dragStart, startPos
+local function UpdateDrag(input)
+    local delta = input.Position - dragStart
+    Panel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+Panel.InputBegan:Connect(function(v)
+    if v.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragToggle = true
+                dragStart = v.Position
+                startPos = Panel.Position
+                end
+end)
+UIS.InputChanged:Connect(function(v) if dragToggle and v.UserInputType == Enum.UserInputType.MouseMovement then UpdateDrag(v) end end)
+UIS.InputEnded:Connect(function() dragToggle = false end)
